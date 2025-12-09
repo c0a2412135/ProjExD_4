@@ -241,6 +241,24 @@ class Score:
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+class gravity_effect(pg.sprite.Sprite):
+    """
+    重力波に関するクラス
+    """
+    def __init__(self):
+        super().__init__()
+        self.life = 400  # 発動時間（フレーム）
+        self.image = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA)# 空の Surface 作成（画面全体）
+        pg.draw.rect(self.image, (0, 0, 0, 128), (0, 0, WIDTH, HEIGHT))# Surface 全体を黒い矩形で塗る
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (0, 0)# 配置（画面左上）
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+    
+
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
@@ -253,6 +271,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    skill_g = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -263,6 +282,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN:
+                if score.value >= 200: #200点以上で発動可能
+                    score.value -= 200  # 発動コスト200点
+                    skill_g.add(gravity_effect()) #こうかとんを中心に重力波発動
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -288,6 +311,11 @@ def main():
             pg.display.update()
             time.sleep(2)
             return
+        
+        hits = pg.sprite.groupcollide(bombs, skill_g, True, False).keys()# 重力波と衝突した爆弾リスト
+        for bomb in hits:
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            
 
         bird.update(key_lst, screen)
         beams.update()
@@ -298,6 +326,8 @@ def main():
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
+        skill_g.update()
+        skill_g.draw(screen)
         score.update(screen)
         pg.display.update()
         tmr += 1
